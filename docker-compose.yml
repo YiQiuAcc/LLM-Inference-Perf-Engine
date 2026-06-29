@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # 大模型推理后端引擎
+  ollama_backend:
+    image: ollama/ollama:latest
+    container_name: m_ollama
+    volumes:
+      - ./ollama_data:/root/.ollama
+    ports:
+      - '11434:11434'
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: always
+
+  # NVIDIA DCGM 硬件指标采集器
+  dcgm_exporter:
+    image: nvidia/dcgm-exporter:latest
+    container_name: m_dcgm_exporter
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - '9400:9400'
+    restart: always
+
+  # 智能体前端平台
+  open_webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: m_webui
+    ports:
+      - '3000:8080'
+    environment:
+      - OLLAMA_BASE_URL=http://ollama_backend:11434
+    volumes:
+      - ./webui_data:/app/backend/data
+    restart: always
+
+  # Prometheus 监控服务
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: m_prometheus
+    volumes:
+      - ./config/prometheus:/etc/prometheus
+      - ./prometheus_data:/prometheus
+    ports:
+      - '9090:9090'
+    restart: always
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  # Grafana 可视化面板
+  grafana:
+    image: grafana/grafana:latest
+    container_name: m_grafana
+    ports:
+      - '3001:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+    restart: always
+    depends_on:
+      - prometheus
+
+  # Alertmanager 告警服务
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: m_alertmanager
+    ports:
+      - '9093:9093'
+    volumes:
+      - ./config/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    restart: always
+
+  # 智能网关 Nginx
+  nginx_gateway:
+    image: nginx:latest
+    container_name: m_nginx
+    ports:
+      - '80:80' # 把服务器的 80 端口映射给 Nginx
+      # - "443:443" # 如果用 HTTPS, 把这行打开
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro # ro 代表只读
+    restart: always
+    depends_on:
+      - ollama_backend # 确保大模型引擎启动了, Nginx 再启动
