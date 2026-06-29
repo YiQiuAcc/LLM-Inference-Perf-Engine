@@ -1,0 +1,17 @@
+[project]
+name = "llm-inference-perf-engine"
+version = "0.1.0"
+description = "私有化大模型推理网关与流式性能工程系统"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+llmc-stress = "scripts.stress_test:main"
+
+[tool.setuptools.packages.find]
+include = ["llmc*", "scripts*"]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"

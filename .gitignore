@@ -1,0 +1,46 @@
+# 运行时数据目录（docker-compose 挂载卷）
+ollama_data/
+webui_data/
+prometheus_data/
+grafana_data/
+
+# Python 虚拟环境 (uv)
+.venv/
+
+# Python 缓存与构建产物
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+/var/log/nginx/
+
+# SSL 证书（安全敏感）
+*.crt
+*.key
+*.pem
+
+# 环境变量文件（敏感凭据）
+.env
+.env.local
+.env.production
+
+# 容器运行时文件
+docker-compose.override.yml
+
+# 内部文档
+docs/internal/
