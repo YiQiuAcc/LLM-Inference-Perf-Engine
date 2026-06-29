@@ -1,0 +1,54 @@
+# Alertmanager 告警配置 - 自动化告警
+# 配置告警路由、接收器与通知策略
+
+global:
+  # 全局告警解析间隔
+  resolve_timeout: 5m
+
+# 根路由：基于告警严重级别进行路由分发
+route:
+  receiver: 'default' # 默认接收器
+  group_wait: 30s # 组告警等待时间累积同组告警
+  group_interval: 5m # 同组告警发送间隔
+  repeat_interval: 4h # 重复告警发送间隔（避免告警风暴）
+  group_by: ['alertname', 'severity'] # 按告警名称和严重级别分组
+
+  # 子路由：按严重级别分发
+  routes:
+    - receiver: 'critical' # 严重告警 → 即时通知
+      match:
+        severity: 'critical'
+      repeat_interval: 30m # 严重告警每 30 分钟重复一次
+
+    - receiver: 'warning' # 警告告警 → 常规通知
+      match:
+        severity: 'warning'
+      repeat_interval: 2h
+
+# 接收器定义
+receivers:
+  # 默认接收器：日志输出
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:9094/'
+        send_resolved: false
+
+  # 严重告警接收器
+  - name: 'critical'
+    webhook_configs:
+      - url: 'http://localhost:9094/'
+        send_resolved: true
+
+  # 警告告警接收器
+  - name: 'warning'
+    webhook_configs:
+      - url: 'http://localhost:9094/'
+        send_resolved: true
+
+# 抑制规则：防止同根源的重复告警
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']

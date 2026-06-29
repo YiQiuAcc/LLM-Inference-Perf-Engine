@@ -1,0 +1,98 @@
+# Prometheus 告警规则
+# 定义硬件层与推理引擎层的异常检测与告警触发条件
+
+groups:
+  # GPU 硬件层告警规则
+  - name: gpu_hardware_alerts
+    interval: 30s
+    rules:
+      # GPU 显存过载告警
+      - alert: GPUMemoryHigh
+        expr: |
+          DCGM_FI_DEV_GPU_UTIL > 0
+          and
+          (DCGM_FI_DEV_FB_USED / DCGM_FI_DEV_FB_TOTAL) * 100 > 90
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: 'GPU 显存使用率超过 90%（当前: {{ $value | humanizePercentage }}）'
+          description: '实例 {{ $labels.instance }} 的 GPU 显存使用率已达 {{ $value | humanizePercentage }}持续超过 30 秒有 CUDA OOM 风险请及时排查。'
+
+      # GPU 温度过高告警
+      - alert: GPUTemperatureHigh
+        expr: DCGM_FI_DEV_GPU_TEMP > 82
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: 'GPU 温度超过 82°C（当前: {{ $value }}°C）'
+          description: '实例 {{ $labels.instance }} 的 GPU 温度已达 {{ $value }}°C持续超过 30 秒存在硬件降频或损坏风险。'
+
+      # GPU 掉线/不可达告警
+      - alert: GPUInstanceDown
+        expr: up{job="dcgm_exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'GPU 指标采集实例 {{ $labels.instance }} 离线'
+          description: 'DCGM Exporter 实例 {{ $labels.instance }} 已离线超过 1 分钟GPU 硬件监控信号丢失。'
+
+  # 推理引擎层告警规则
+  - name: inference_engine_alerts
+    interval: 30s
+    rules:
+      # 推理引擎离线告警
+      - alert: InferenceEngineDown
+        expr: up{job="ollama"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: '推理引擎实例 {{ $labels.instance }} 离线'
+          description: 'Ollama 推理引擎实例 {{ $labels.instance }} 已离线超过 1 分钟推理服务中断。'
+
+      # 请求队列过长告警
+      - alert: RequestQueueHigh
+        expr: rate(vllm:request_queue_total[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: '推理请求队列积压（当前速率: {{ $value | humanize }}）'
+          description: '请求队列长度超过 100持续 2 分钟推理引擎可能面临过载压力。'
+
+      # 推理引擎响应延迟告警
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(vllm:request_duration_seconds_bucket[5m])) > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: '推理请求 P95 延迟超过 30 秒（当前: {{ $value }}s）'
+          description: '推理请求 P95 延迟已达 {{ $value }}s持续 2 分钟用户体验显著下降。'
+
+  # 基础设施层告警规则
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      # Prometheus 自身健康
+      - alert: PrometheusTargetMissing
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Prometheus 服务离线'
+          description: 'Prometheus 监控服务已离线超过 1 分钟全链路可观测性中断。'
+
+      # 磁盘空间告警（Prometheus 数据目录）
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/prometheus"} / node_filesystem_size_bytes{mountpoint="/prometheus"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Prometheus 数据盘剩余空间不足 10%'
+          description: 'Prometheus 存储目录可用空间低于 10%持续 5 分钟需及时扩容或清理历史数据。'
