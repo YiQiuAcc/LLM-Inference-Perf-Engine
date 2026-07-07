@@ -4,7 +4,7 @@ from typing import List, Dict
 
 
 class StressMetrics:
-    """压测指标收集器（线程安全）"""
+    """压测指标收集器(线程安全)"""
 
     def __init__(self):
         self.lock = threading.Lock()

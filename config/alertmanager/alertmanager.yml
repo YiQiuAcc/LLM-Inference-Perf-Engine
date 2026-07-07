@@ -7,48 +7,64 @@ global:
 
 # 根路由：基于告警严重级别进行路由分发
 route:
-  receiver: 'default' # 默认接收器
+  receiver: "default" # 默认接收器
   group_wait: 30s # 组告警等待时间累积同组告警
   group_interval: 5m # 同组告警发送间隔
-  repeat_interval: 4h # 重复告警发送间隔（避免告警风暴）
-  group_by: ['alertname', 'severity'] # 按告警名称和严重级别分组
+  repeat_interval: 4h # 重复告警发送间隔(避免告警风暴)
+  group_by: ["alertname", "severity"] # 按告警名称和严重级别分组
 
   # 子路由：按严重级别分发
   routes:
-    - receiver: 'critical' # 严重告警 → 即时通知
+    - receiver: "critical" # 严重告警 → 即时通知
       match:
-        severity: 'critical'
+        severity: "critical"
       repeat_interval: 30m # 严重告警每 30 分钟重复一次
 
-    - receiver: 'warning' # 警告告警 → 常规通知
+    - receiver: "warning" # 警告告警 → 常规通知
       match:
-        severity: 'warning'
+        severity: "warning"
       repeat_interval: 2h
 
 # 接收器定义
+# ⚠️ 部署前必须将 webhook URL 替换为真实通知服务地址
+# 支持：企业微信、钉钉、飞书、Slack、邮件(SMTP) 等
 receivers:
-  # 默认接收器：日志输出
-  - name: 'default'
+  # 默认接收器：日志输出, 仅记录
+  - name: "default"
     webhook_configs:
-      - url: 'http://localhost:9094/'
+      - url: "http://localhost:9094/" # TODO: 替换为真实的 webhook 地址
         send_resolved: false
 
   # 严重告警接收器
-  - name: 'critical'
+  # 示例配置:
+  # - name: 'critical'
+  #   webhook_configs:
+  #     - url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+  #       send_resolved: true
+  #       title: '{{ .GroupLabels.alertname }}'
+  #       text: '{{ .CommonAnnotations.description }}'
+  #   email_configs:
+  #     - to: 'oncall@example.com'
+  #       from: 'alertmanager@example.com'
+  #       smarthost: 'smtp.example.com:587'
+  #       auth_username: 'alertmanager@example.com'
+  #       auth_password: 'your-password'
+  #       send_resolved: true
+  - name: "critical"
     webhook_configs:
-      - url: 'http://localhost:9094/'
+      - url: "http://localhost:9094/" # TODO: 替换为真实的 webhook 地址
         send_resolved: true
 
   # 警告告警接收器
-  - name: 'warning'
+  - name: "warning"
     webhook_configs:
-      - url: 'http://localhost:9094/'
+      - url: "http://localhost:9094/" # TODO: 替换为真实的 webhook 地址
         send_resolved: true
 
 # 抑制规则：防止同根源的重复告警
 inhibit_rules:
   - source_match:
-      severity: 'critical'
+      severity: "critical"
     target_match:
-      severity: 'warning'
-    equal: ['alertname', 'instance']
+      severity: "warning"
+    equal: ["alertname", "instance"]

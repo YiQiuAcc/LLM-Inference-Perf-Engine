@@ -1,4 +1,4 @@
-# Prometheus 监控配置 - 全链路可观测性
+# Prometheus 监控配置
 # 指标抓取配置：硬件层 (DCGM) + 推理引擎层 (vLLM/Ollama)
 
 global:
@@ -15,33 +15,33 @@ alerting:
 
 # 告警规则文件
 rule_files:
-  - 'alerts.yml'
+  - "alerts.yml"
 
 # 抓取目标配置
 scrape_configs:
   # NVIDIA DCGM Exporter - GPU 硬件层指标
-  - job_name: 'dcgm_exporter'
+  - job_name: "dcgm_exporter"
     scrape_interval: 5s # 硬件指标需要高频采集
     scrape_timeout: 3s
     static_configs:
       - targets:
-          - 'dcgm_exporter:9400'
+          - "dcgm_exporter:9400"
         labels:
-          service: 'gpu_hardware'
-          tier: 'infrastructure'
+          service: "gpu_hardware"
+          tier: "infrastructure"
 
   # Ollama 推理引擎指标
-  - job_name: 'ollama'
-    scrape_interval: 10s
-    scrape_timeout: 5s
-    static_configs:
-      - targets:
-          - 'ollama_backend:11434'
-        labels:
-          service: 'inference_engine'
-          engine_type: 'ollama'
+  # - job_name: 'ollama'
+  #   scrape_interval: 10s
+  #   scrape_timeout: 5s
+  #   static_configs:
+  #     - targets:
+  #         - 'ollama_exporter:8000'
+  #       labels:
+  #         service: 'inference_engine'
+  #         engine_type: 'ollama'
 
-  # 3. vLLM 推理引擎指标（预留vLLM 原生暴露 /metrics 端点）
+  # vLLM 推理引擎指标
   # - job_name: 'vllm'
   #   scrape_interval: 10s
   #   scrape_timeout: 5s
@@ -52,17 +52,17 @@ scrape_configs:
   #         service: 'inference_engine'
   #         engine_type: 'vllm'
 
-  # 4. Prometheus 自身健康指标
-  - job_name: 'prometheus'
+  # Prometheus 自身健康指标
+  - job_name: "prometheus"
     scrape_interval: 30s
     static_configs:
       - targets:
-          - 'localhost:9090'
+          - "localhost:9090"
         labels:
-          service: 'monitoring'
-          tier: 'infrastructure'
+          service: "monitoring"
+          tier: "infrastructure"
 
-  # 5. Node Exporter 宿主机指标（预留）
+  # Node Exporter 宿主机指标(预留)
   # - job_name: 'node_exporter'
   #   scrape_interval: 15s
   #   static_configs:

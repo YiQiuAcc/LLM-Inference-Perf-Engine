@@ -4,7 +4,7 @@ from urllib import request, error
 
 
 def _parse_ollama_stream(resp, start_time):
-    """逐行读取 Ollama SSE 流，返回 (latency, response_time, token_count, status_code)"""
+    """逐行读取 Ollama SSE 流, 返回 (latency, response_time, token_count, status_code)"""
     latency = 0.0
     first_token_received = False
     token_count = 0
@@ -31,7 +31,7 @@ def _parse_ollama_stream(resp, start_time):
 
 
 def _parse_vllm_stream(resp, start_time):
-    """逐行读取 vLLM SSE 流，返回 (latency, response_time, token_count, status_code)"""
+    """逐行读取 vLLM SSE 流, 返回 (latency, response_time, token_count, status_code)"""
     latency = 0.0
     first_token_received = False
     token_count = 0
@@ -57,7 +57,7 @@ def _parse_vllm_stream(resp, start_time):
 
 
 class _BaseClient:
-    """客户端基类，封装 HTTP 请求公共逻辑"""
+    """客户端基类, 封装 HTTP 请求公共逻辑"""
 
     def __init__(self, base_url: str, model: str, prompt: str, timeout: int = 600):
         self.base_url = base_url.rstrip("/")
@@ -66,7 +66,7 @@ class _BaseClient:
         self.timeout = timeout
 
     def _do_request(self, url: str, payload: bytes, headers: dict, stream: bool):
-        """发送 HTTP POST 请求，根据 stream 模式决定解析方式"""
+        """发送 HTTP POST 请求, 根据 stream 模式决定解析方式"""
         req = request.Request(url, data=payload, headers=headers, method="POST")
         try:
             start = time.time()
@@ -125,7 +125,7 @@ class OllamaStressClient(_BaseClient):
 
 
 class VLLMStressClient(_BaseClient):
-    """vLLM API 压测客户端（OpenAI 兼容端点）"""
+    """vLLM API 压测客户端(OpenAI 兼容端点)"""
 
     def _make_payload(self, stream: bool) -> bytes:
         return json.dumps(
