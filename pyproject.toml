@@ -4,13 +4,16 @@ version = "0.1.0"
 description = "私有化大模型推理网关与流式性能工程系统"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "rich>=15.0.0",
+    "typer>=0.27.1",
+]
 
 [dependency-groups]
 dev = ["ruff"]
 
 [project.scripts]
-llm-perf = "llmp.cli:main"
+llmp = "llmp.cli:main"
 
 [build-system]
 requires = ["setuptools>=75.0"]

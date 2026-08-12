@@ -53,7 +53,7 @@
 │   └── benchmark_report.md  # 压测性能报告/容量规划分析
 ├── src/                     # 核心 Python 源码 (src layout)
 │   └── llmp/                # 统一包名 llmp
-│       ├── cli.py           # 统一命令行入口 (llm-perf)
+│       ├── cli.py           # 统一命令行入口 (llmp)
 │       ├── core/            # 通信底层（client.py）与指标收集模型（metrics.py）
 │       ├── loadgen/         # 业务负载层：本地代码库分析与自动化 Review 引擎
 │       └── runners/         # 压测与基准测试执行引擎（stress.py 主逻辑）
@@ -117,7 +117,7 @@
 │   └── benchmark_report.md  # 压测性能报告/容量规划分析
 ├── src/                     # 核心 Python 源码 (src layout)
 │   └── llmp/                # 统一包名 llmp
-│       ├── cli.py           # 统一命令行入口 (llm-perf)
+│       ├── cli.py           # 统一命令行入口 (llmp)
 │       ├── core/            # 通信底层（client.py）与指标收集模型（metrics.py）
 │       ├── loadgen/         # 业务负载层：本地代码库分析与自动化 Review 引擎
 │       └── runners/         # 压测执行引擎（stress.py 主逻辑）
@@ -147,16 +147,16 @@ uv sync
 
 ### 3. CLI 控制台统一调度
 
-系统提供统一入口 `llm-perf` 进行各项子功能的调度：
+系统提供统一入口 `llmp` 进行各项子功能的调度：
 
 - **执行代码库流式 Review（业务负载测试，待实现）：**
 
 ```bash
-llm-perf review --path ./target_project
+llmp review --path ./target_project
 ```
 
 - **执行流式基准压力测试：**
 
 ```bash
-llm-perf stress --concurrency 1,5,10 --duration 60
+llmp stress --concurrency 1,5,10 --duration 60
 ```

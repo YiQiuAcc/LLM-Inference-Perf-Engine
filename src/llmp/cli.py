@@ -1,12 +1,16 @@
-"""llm-perf 统一命令行入口"""
+"""llmp 统一命令行入口(typer + rich)"""
 
-import argparse
+from pathlib import Path
+from typing import Annotated, Literal
+import typer
 from llmp.runners import run_gradient_stress_test, run_stress_test
+from llmp.runners.stress import StressArgs
+from llmp.utils.console import get_console
 
 # 压测默认参数
 DEFAULT_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL = "deepseek-r1:7b"
-DEFAULT_CONCURRENCY = 50
+DEFAULT_CONCURRENCY = "50"
 DEFAULT_DURATION = 120
 DEFAULT_TIMEOUT = 600
 
@@ -15,105 +19,98 @@ LONG_TEXT_PROMPT = (
     "包括 Transformer 架构、注意力机制和训练过程。"
 )
 
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="llm-perf",
-        description="LLM-Inference-Perf-Engine: 私有化大模型推理网关与流式性能工程系统",
-    )
-    sub = parser.add_subparsers(dest="command", required=True)
-
-    stress = sub.add_parser(
-        "stress",
-        help="多线程并发压力测试",
-        description="LLMOps 多线程并发压力测试脚本",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""示例:
-  基础压测:  llm-perf stress --concurrency 50 --duration 120
-  梯度压测:  llm-perf stress --concurrency 10,30,50,80,100 --duration 60 --gradient
-  流式压测:  llm-perf stress --concurrency 20 --stream --duration 60""",
-    )
-    stress.add_argument(
-        "--base-url",
-        type=str,
-        default=DEFAULT_BASE_URL,
-        help=f"推理网关地址(默认: {DEFAULT_BASE_URL})",
-    )
-    stress.add_argument(
-        "--model",
-        type=str,
-        default=DEFAULT_MODEL,
-        help=f"模型名称(默认: {DEFAULT_MODEL})",
-    )
-    stress.add_argument(
-        "--prompt",
-        type=str,
-        default=LONG_TEXT_PROMPT,
-        help="推理 prompt(默认: 长文本 prompt)",
-    )
-    stress.add_argument(
-        "--concurrency",
-        type=str,
-        default=str(DEFAULT_CONCURRENCY),
-        help=f"并发数；梯度模式用逗号分隔(默认: {DEFAULT_CONCURRENCY})",
-    )
-    stress.add_argument(
-        "--duration",
-        type=int,
-        default=DEFAULT_DURATION,
-        help=f"持续时间秒(默认: {DEFAULT_DURATION})",
-    )
-    stress.add_argument(
-        "--timeout",
-        type=int,
-        default=DEFAULT_TIMEOUT,
-        help=f"请求超时秒(默认: {DEFAULT_TIMEOUT})",
-    )
-    stress.add_argument(
-        "--backend",
-        type=str,
-        default="ollama",
-        choices=["ollama", "vllm"],
-        help="推理引擎后端(默认: ollama, 可选: vllm)",
-    )
-    stress.add_argument("--stream", action="store_true", help="启用流式 SSE 模式")
-    stress.add_argument("--gradient", action="store_true", help="启用梯度压测模式")
-    stress.set_defaults(func=_run_stress)
-
-    review = sub.add_parser(
-        "review",
-        help="本地代码库流式 Review（业务负载，待实现）",
-        description="扫描本地源码库并拼接长文本上下文，为推理集群构建真实业务负载",
-    )
-    review.add_argument("--path", type=str, help="目标项目路径")
-    review.set_defaults(func=_run_review)
-
-    return parser
-
-
-def _run_stress(args):
-    if args.gradient:
-        run_gradient_stress_test(args)
-    else:
-        args.concurrency = int(args.concurrency)
-        run_stress_test(args)
-
-
-def _run_review(_):
-    print("[llm-perf] review 子命令尚未实现（业务负载层位于 src/llmp/loadgen/）")
-    raise SystemExit(1)
-
-
-def main():
-    args = build_parser().parse_args()
-
-    print("""
+BANNER = """
 ╔══════════════════════════════════════════════════════════════╗
 ║           LLMOps 多线程并发压力测试工具                         ║
 ╚══════════════════════════════════════════════════════════════╝
-    """)
+"""
 
-    args.func(args)
+app = typer.Typer(
+    name="llmp",
+    help="LLM-Inference-Perf-Engine: 私有化大模型推理网关与流式性能工程系统",
+    rich_markup_mode="rich",
+    no_args_is_help=True,
+    add_completion=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
+
+
+@app.command()
+def stress(
+    base_url: Annotated[
+        str, typer.Option("--base-url", help=f"推理网关地址(默认: {DEFAULT_BASE_URL})")
+    ] = DEFAULT_BASE_URL,
+    model: Annotated[
+        str, typer.Option("--model", help=f"模型名称(默认: {DEFAULT_MODEL})")
+    ] = DEFAULT_MODEL,
+    prompt: Annotated[
+        str, typer.Option("--prompt", help="推理 prompt(默认: 长文本 prompt)")
+    ] = LONG_TEXT_PROMPT,
+    concurrency: Annotated[
+        str,
+        typer.Option(
+            "--concurrency", help=f"并发数；梯度模式用逗号分隔(默认: {DEFAULT_CONCURRENCY})"
+        ),
+    ] = DEFAULT_CONCURRENCY,
+    duration: Annotated[
+        int, typer.Option("--duration", help=f"持续时间秒(默认: {DEFAULT_DURATION})")
+    ] = DEFAULT_DURATION,
+    timeout: Annotated[
+        int, typer.Option("--timeout", help=f"请求超时秒(默认: {DEFAULT_TIMEOUT})")
+    ] = DEFAULT_TIMEOUT,
+    backend: Annotated[
+        Literal["ollama", "vllm"],
+        typer.Option("--backend", help="推理引擎后端(默认: ollama, 可选: vllm)"),
+    ] = "ollama",
+    stream: Annotated[
+        bool, typer.Option("--stream", help="启用流式 SSE 模式")
+    ] = False,
+    gradient: Annotated[
+        bool, typer.Option("--gradient", help="启用梯度压测模式")
+    ] = False,
+) -> None:
+    """多线程并发压力测试
+
+    示例:
+      基础压测:  llmp stress --concurrency 50 --duration 120
+      梯度压测:  llmp stress --concurrency 10,30,50,80,100 --duration 60 --gradient
+      流式压测:  llmp stress --concurrency 20 --stream --duration 60
+    """
+    args = StressArgs(
+        base_url=base_url,
+        model=model,
+        prompt=prompt,
+        concurrency=concurrency,
+        duration=duration,
+        timeout=timeout,
+        backend=backend,
+        stream=stream,
+        gradient=gradient,
+    )
+    try:
+        if gradient:
+            run_gradient_stress_test(args)
+        else:
+            run_stress_test(args)
+    except KeyboardInterrupt:
+        get_console().print("[yellow]压测被用户中断[/]")
+        raise typer.Exit(130) from None
+
+
+@app.command()
+def review(
+    path: Annotated[Path | None, typer.Option("--path", help="目标项目路径")] = None,
+) -> None:
+    """本地代码库流式 Review(业务负载, 待实现)"""
+    get_console().print(
+        f"[yellow][llmp] review 子命令尚未实现[/] --path={path or '<未指定>'}"
+    )
+    raise typer.Exit(1)
+
+
+def main() -> None:
+    get_console().print(BANNER, highlight=False)
+    app()
 
 
 if __name__ == "__main__":
