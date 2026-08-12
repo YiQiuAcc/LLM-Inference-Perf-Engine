@@ -1,6 +1,6 @@
 import json
 import time
-from urllib import request, error
+from urllib import error, request
 
 
 def _parse_ollama_stream(resp, start_time):
@@ -73,14 +73,13 @@ class _BaseClient:
             with request.urlopen(req, timeout=self.timeout) as resp:
                 if stream:
                     return self._parse_stream(resp, start)
-                else:
-                    return self._parse_nonstream(resp, start)
+                return self._parse_nonstream(resp, start)
         except error.HTTPError as e:
-            raise RuntimeError(f"HTTP {e.code}: {e.reason}")
+            raise RuntimeError(f"HTTP {e.code}: {e.reason}") from e
         except error.URLError as e:
-            raise RuntimeError(f"连接失败: {e.reason}")
+            raise RuntimeError(f"连接失败: {e.reason}") from e
         except Exception as e:
-            raise RuntimeError(f"请求异常: {str(e)}")
+            raise RuntimeError(f"请求异常: {e!s}") from e
 
     def _parse_nonstream(self, resp, start_time):
         raise NotImplementedError

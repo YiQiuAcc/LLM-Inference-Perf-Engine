@@ -6,12 +6,12 @@
 
 ## 系统核心架构
 
-### 1. 业务负载层：本地代码库分析与自动化 Review 引擎 (`llmc`)
+### 1. 业务负载层：本地代码库分析与自动化 Review 引擎 (`src/llmp/loadgen`，规划中)
 
-- **真实长文本高负载场景构建**：开发了 `llmc` 模块，通过扫描本地 Python/C# 项目源码并进行拓扑组装，拼接成大规模的上下文 Prompt（单次请求可达 8K-32K Tokens），为底层推理集群提供真实、持续的长文本高负载业务流。
+- **真实长文本高负载场景构建**：计划开发 `loadgen` 模块，通过扫描本地 Python/C# 项目源码并进行拓扑组装，拼接成大规模的上下文 Prompt（单次请求可达 8K-32K Tokens），为底层推理集群提供真实、持续的长文本高负载业务流。
 - **动态上下文调度**：支持代码文件的按需加载与 Token 预估，为评估后端推理引擎在长文本状态下的系统容量与显存表现提供关键的业务支撑。
 
-### 2. 性能测试工程：自研流式多线程基准测试框架 (`scripts/runners`)
+### 2. 性能测试工程：自研流式多线程基准测试框架 (`src/llmp/runners`)
 
 - **流式语义协议解析**：攻克传统 Web 压测工具（如 AB、WRK）无法解析大模型打字机流式响应（Server-Sent Events, SSE）的痛点，基于 Python 独立编写了高性能并发测试引擎 `stress.py`。
 - **高精度多维指标捕获**：除传统的成功率与 QPS 外，自研脚本能够精准拆解 SSE 数据包，捕获并计算**首字延迟（TTFT）**、**间字延迟（ITI）**、**每秒生成 Token 数（Tokens/s）** 以及**输入/输出 Token 吞吐比**。
@@ -44,21 +44,20 @@
 根据系统的物理布局，核心文件组织如下：
 
 ```text
-├── config/                  # 基础设施配置文件
+├── config/                  # 基础设施配置文件（运维与网络）
 │   ├── alertmanager/        # 告警通道与策略配置
 │   ├── nginx/               # Nginx 反向代理与流式代理调优配置
 │   └── prometheus/          # Prometheus 指标抓取规则与数据周期配置
-├── docs/                    # 性能测试报告与技术白皮书存储路径
-├── llmc/                    # 业务负载层：本地代码分析与自动化 Review 引擎
-│   ├── parser/              # 多语言代码库 AST/文本解析器
-│   ├── prompt/              # 长文本上下文拼接与 Prompt 模板管理
-│   └── reviewer.py          # 流式分析业务逻辑层
-├── scripts/                 # 核心控制脚本与通用组件
-│   ├── configs/             # 压测环境基准参数配置
-│   ├── core/                # 通信底层（client.py）与指标收集模型（metrics.py）
-│   └── runners/             # 压测与基准测试执行引擎（stress.py 主逻辑）
+├── docs/                    # 工程白皮书与报告
+│   ├── ROADMAP.md           # 演进路线图
+│   └── benchmark_report.md  # 压测性能报告/容量规划分析
+├── src/                     # 核心 Python 源码 (src layout)
+│   └── llmp/                # 统一包名 llmp
+│       ├── cli.py           # 统一命令行入口 (llm-perf)
+│       ├── core/            # 通信底层（client.py）与指标收集模型（metrics.py）
+│       ├── loadgen/         # 业务负载层：本地代码库分析与自动化 Review 引擎
+│       └── runners/         # 压测与基准测试执行引擎（stress.py 主逻辑）
 ├── docker-compose.yml       # 全栈组件一键容器化编排配置
-├── main.py                  # 系统统一 CLI 命令行控制入口
 └── pyproject.toml / uv.lock # 现代 Python 项目依赖与包管理 (uv)
 ```
 
@@ -72,12 +71,12 @@
 
 ## 项目核心架构
 
-### 1. 业务应用层：本地代码库分析与自动化 Review 引擎 (`llmc`)
+### 1. 业务应用层：本地代码库分析与自动化 Review 引擎 (`src/llmp/loadgen`，规划中)
 
-- **真实高负载场景构建**：开发了 `llmc` 模块，通过扫描本地 Python/C# 项目源码并进行拓扑组装，拼接成大规模的上下文 Prompt（单次请求可达 8k-32k Tokens），为底层推理集群提供真实、持续的长文本高负载业务流。
+- **真实高负载场景构建**：计划开发 `loadgen` 模块，通过扫描本地 Python/C# 项目源码并进行拓扑组装，拼接成大规模的上下文 Prompt（单次请求可达 8k-32k Tokens），为底层推理集群提供真实、持续的长文本高负载业务流。
 - **动态上下文调度**：支持代码文件的按需加载与 Token 预估，为评估后端推理引擎在长文本状态下的系统容量提供业务支撑。
 
-### 2. 性能测试工程：自研流式多线程压测框架 (`scripts/runners`)
+### 2. 性能测试工程：自研流式多线程压测框架 (`src/llmp/runners`)
 
 - **攻克传统网络压测痛点**：传统压测工具（如 AB、WRK）无法解析大模型打字机流式响应（Server-Sent Events, SSE）。本项目基于 Python 独立编写了高性能并发测试引擎 `stress.py`。
 - **高精度多维指标捕获**：除传统的成功率与 QPS 外，自研脚本能够精准拆解 SSE 数据包，捕获并计算**首字延迟（TTFT）**、**间字延迟（ITI）**、**每秒生成 Token 数（Tokens/s）** 以及**输入/输出 Token 吞吐比**。
@@ -109,21 +108,20 @@
 根据项目的物理布局（参考 `image_afe23d.png`），核心文件组织如下：
 
 ```text
-├── config/                  # 基础设施配置文件
+├── config/                  # 基础设施配置文件（运维与网络）
 │   ├── alertmanager/        # 告警通道配置
 │   ├── nginx/               # Nginx 反向代理与流式调优配置
 │   └── prometheus/          # Prometheus 指标抓取规则
-├── docs/                    # 性能测试报告与技术文档
-├── llmc/                    # 核心应用：本地代码分析与自动化 Review 引擎
-│   ├── parser/              # 多语言代码库 AST/文本解析器
-│   ├── prompt/              # 长文本上下文拼接与 Prompt 模板管理
-│   └── reviewer.py          # 流式分析业务逻辑层
-├── scripts/                 # 脚本与核心通信组件
-│   ├── configs/             # 压测环境默认参数配置
-│   ├── core/                # 通信底层（client.py）与指标收集模型（metrics.py）
-│   └── runners/             # 压测执行引擎（stress.py 主逻辑）
+├── docs/                    # 工程白皮书与报告
+│   ├── ROADMAP.md           # 演进路线图
+│   └── benchmark_report.md  # 压测性能报告/容量规划分析
+├── src/                     # 核心 Python 源码 (src layout)
+│   └── llmp/                # 统一包名 llmp
+│       ├── cli.py           # 统一命令行入口 (llm-perf)
+│       ├── core/            # 通信底层（client.py）与指标收集模型（metrics.py）
+│       ├── loadgen/         # 业务负载层：本地代码库分析与自动化 Review 引擎
+│       └── runners/         # 压测执行引擎（stress.py 主逻辑）
 ├── docker-compose.yml       # 全栈组件一键容器化编排配置
-├── main.py                  # 项目统一 CLI 启动入口
 └── pyproject.toml / uv.lock # 现代 Python 项目依赖管理 (uv)
 ```
 
@@ -149,16 +147,16 @@ uv sync
 
 ### 3. CLI 控制台统一调度
 
-系统提供统一入口 `main.py` 进行各项子功能的调度：
+系统提供统一入口 `llm-perf` 进行各项子功能的调度：
 
-- **执行代码库流式 Review（业务负载测试）：**
+- **执行代码库流式 Review（业务负载测试，待实现）：**
 
 ```bash
-python main.py review --path ./target_project
+llm-perf review --path ./target_project
 ```
 
 - **执行流式基准压力测试：**
 
 ```bash
-python main.py stress --concurrency 1,5,10 --duration 60
+llm-perf stress --concurrency 1,5,10 --duration 60
 ```

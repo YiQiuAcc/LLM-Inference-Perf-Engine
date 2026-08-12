@@ -1,11 +1,9 @@
-import time
-import threading
 import argparse
-from datetime import datetime
-from typing import List
-
-from core.metrics import StressMetrics
-from core.client import OllamaStressClient, VLLMStressClient
+import threading
+import time
+from datetime import UTC, datetime
+from llmp.core.client import OllamaStressClient, VLLMStressClient
+from llmp.core.metrics import StressMetrics
 
 
 def _make_client(args):
@@ -34,15 +32,13 @@ def worker_thread(
             )
         except RuntimeError as e:
             metrics.record_failure(str(e))
-        except Exception as e:
-            metrics.record_failure(f"未知异常: {str(e)}")
 
 
 def run_stress_test(args) -> StressMetrics:
     metrics = StressMetrics()
     stop_event = threading.Event()
 
-    print(f"\n[LLMOps 压测启动] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"\n[LLMOps 压测启动] {datetime.now(tz=UTC).strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"目标地址: {args.base_url}")
     print(f"模型: {args.model}")
     print(f"后端: {args.backend}")
@@ -57,7 +53,7 @@ def run_stress_test(args) -> StressMetrics:
         warmup_client = warmup_cls(args.base_url, args.model, "Hello", timeout=30)
         warmup_client.send_chat_request()
         print("[预热] 完成\n")
-    except Exception as e:
+    except RuntimeError as e:
         print(f"[预热] 失败: {e}")
         print("[警告] 继续执行压测...\n")
 
@@ -117,7 +113,7 @@ def run_gradient_stress_test(args):
     print(f"并发梯度: {concurrency_levels}")
     print(f"每阶段持续时间: {per_stage_duration}s\n")
 
-    all_results: List[dict] = []
+    all_results: list[dict] = []
 
     for i, cc in enumerate(concurrency_levels):
         print(f"\n{'#' * 60}")

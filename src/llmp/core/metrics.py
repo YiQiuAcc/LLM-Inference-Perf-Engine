@@ -1,6 +1,5 @@
-import threading
 import statistics
-from typing import List, Dict
+import threading
 
 
 class StressMetrics:
@@ -11,11 +10,11 @@ class StressMetrics:
         self.success_count = 0
         self.failure_count = 0
         self.total_tokens = 0
-        self.stream_ttft: List[float] = []
-        self.nonstream_latency: List[float] = []
-        self.response_times: List[float] = []
-        self.status_codes: Dict[int, int] = {}
-        self.errors: List[str] = []
+        self.stream_ttft: list[float] = []
+        self.nonstream_latency: list[float] = []
+        self.response_times: list[float] = []
+        self.status_codes: dict[int, int] = {}
+        self.errors: list[str] = []
 
     def record_success(
         self,
@@ -40,7 +39,7 @@ class StressMetrics:
             self.failure_count += 1
             self.errors.append(error_msg)
 
-    def _percentile(self, values: List[float], p: float) -> float:
+    def _percentile(self, values: list[float], p: float) -> float:
         if not values:
             return 0.0
         sorted_vals = sorted(values)
@@ -97,8 +96,8 @@ class StressMetrics:
             "压测统计摘要 (Stress Test Summary)",
             f"{'=' * 60}",
             f"总请求数 (Total Requests): {summary['total_requests']}",
-            f"成功 (Success): {summary['success_count']}  "
-            f"失败 (Failure): {summary['failure_count']}  "
+            f"成功 (Success): {summary['success_count']}  ",
+            f"失败 (Failure): {summary['failure_count']}  ",
             f"成功率: {summary['success_rate']}",
             f"生成 Token 总数: {summary['total_tokens']}",
         ]
